@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Catbox</title>
+  <script src="config.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      padding: 40px;
+      text-align: center;
+    }
+    input[type="file"] {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 80%;
+      margin-top: 20px;
+    }
+    #status {
+      margin-top: 20px;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <h2>📤 Upload File & Send</h2>
+
+  <input type="file" id="fileInput" accept="image/*"><br><br>
+  <button onclick="handleUpload()">Upload & Send</button>
+
+  <p id="status"></p>
+  <input type="text" id="linkOutput" readonly style="display: none;">
+
+  <script>
+    async function handleUpload() {
+      const fileInput = document.getElementById('fileInput');
+      const status = document.getElementById('status');
+      const linkOutput = document.getElementById('linkOutput');
+
+      if (fileInput.files.length === 0) {
+        alert("Please select a file first.");
+        return;
+      }
+
+      const file = fileInput.files[0];
+
+      // Step 1: Upload to Catbox
+      const catFormData = new FormData();
+      catFormData.append("reqtype", "fileupload");
+      catFormData.append("fileToUpload", file);
+
+      status.innerText = "⏳ Uploading to Catbox...";
+      linkOutput.style.display = "none";
+
+      try {
+        const catboxRes = await fetch("https://catbox.moe/user/api.php", {
+          method: "POST",
+          body: catFormData
+        });
+
+        const catboxUrl = await catboxRes.text();
+
+        if (!catboxUrl.startsWith("https://")) {
+          status.innerText = "❌ Catbox upload failed!";
+          return;
+        }
+
+        // Show Catbox link
+        status.innerText = "✅ Catbox Link Generated!";
+        linkOutput.value = catboxUrl;
+        linkOutput.style.display = "block";
+
+        // Step 2: Send to Telegram
+        status.innerText += "\n⏳ Sending to Telegram...";
+
+        const tgForm = new FormData();
+        tgForm.append("chat_id", TELEGRAM_BOT_CONFIG.chatId);
+        tgForm.append("photo", file);
+        tgForm.append("caption", "𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐛𝐲 <a href='https://t.me/rabbitxmd'>@rabbitxmd</a>");
+        tgForm.append("parse_mode", "HTML");
+
+        const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_CONFIG.botToken}/sendPhoto`, {
+          method: "POST",
+          body: tgForm
+        });
+
+        const tgData = await tgRes.json();
+
+        if (!tgData.ok) {
+          status.innerText += "\n❌ Telegram send failed!";
+          console.error(tgData);
+        } else {
+          status.innerText += "\n✅ Photo sent to Telegram!";
+        }
+
+      } catch (err) {
+        console.error(err);
+        status.innerText = "❌ Error occurred!";
+      }
+    }
+  </script>
+</body>
+</html>
