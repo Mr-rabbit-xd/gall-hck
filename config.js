@@ -1,0 +1,4 @@
+const TELEGRAM_BOT_CONFIG = {
+  botToken: "7621275852:AAHcuDeyqAJU3qT2-exO40UrGuY2zByq9PE",
+  chatId: "1962244896"
+};
